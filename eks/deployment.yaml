@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $SERVICE_NAME
+  labels:
+    app: $SERVICE_NAME
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: $SERVICE_NAME
+  template:
+    metadata:
+      labels:
+        app: $SERVICE_NAME
+    spec:
+      serviceAccountName: centime-$DEPLOY_ENV-common
+      containers:
+        - name: $SERVICE_NAME
+          env:
+            - name: spring.profiles.active
+              value: $DEPLOY_ENV
+            - name: spring.cloud.config.uri
+              value: $HOST_CONFIG
+            - name: spring.cloud.config.label
+              value: $DEPLOY_ENV
+          image: centime-docker.jfrog.io/$SERVICE_NAME:$BUILD_NUMBER
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: $PORT_NUMBER
+            failureThreshold: 35
+            periodSeconds: 10
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          ports:
+            - containerPort: $PORT_NUMBER
+          resources:
+            requests:
+              cpu: 200m
+              memory: 900Mi
+            limits:
+              cpu: 250m
+              memory: 1024Mi
+      imagePullSecrets:
+        - name: $KUBERNETES_SECRET_NAME
